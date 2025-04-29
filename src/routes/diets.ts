@@ -131,6 +131,16 @@ export async function dietsRoutes(app: FastifyInstance) {
       // eslint-disable-next-line camelcase
       const { name, description, isInTheDiet } = validationResult.data
 
+      if (
+        name === undefined &&
+        description === undefined &&
+        isInTheDiet === undefined
+      ) {
+        reply.status(404).send({
+          error: 'Request is empyt',
+        })
+      }
+
       await knex('meals').where('id', id).update({
         name,
         description,
@@ -177,12 +187,21 @@ export async function dietsRoutes(app: FastifyInstance) {
         .andWhere('isInTheDiet', false)
         .count('*', { as: 'count' })
 
-      // const bestSequence =
+      const meals = await knex('meals').where('user_id', userId).select()
+
+      let bestSequence = 0
+      let maxSequence = 0
+      for (const meal of meals) {
+        if (Number(meal.isInTheDiet) === 1) bestSequence++
+        else if (bestSequence > maxSequence) maxSequence = bestSequence
+        else bestSequence = 0
+      }
 
       reply.status(200).send({
         totalMeals: numberMeals.count,
         mealsInDiet: numberMealsInDiet.count,
         mealsOutDiet: numberMealsOutDiet.count,
+        bestSequence,
       })
     }
   })
